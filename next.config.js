@@ -8,6 +8,10 @@ const nextConfig = {
       },
     ],
   },
+  reactStrictMode: true,
+  experimental: {
+    appDir: true,
+  },
 };
 
-module.exports = nextConfig
+module.exports = nextConfig;
