@@ -1,26 +1,21 @@
 "use client";
-
 import React, { useState, useEffect, useRef } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
-import { getAssetPrompt } from "../utils/getAssetPrompt";
 import { Button } from "@/components/ui/button";
 import { Wand2 } from "lucide-react";
 import PostsGrid from "./PostsGrid";
 import PostsSkeleton from "./PostsSkeleton";
 import { useCompletion } from "ai/react";
-import { postSchema } from "../api/schema/schema";
-import { z } from "zod";
 import { Textarea } from "@/components/ui/textarea";
 
-type PartialObject<T> = {
-  [P in keyof T]?: T[P] | undefined;
+type PostRaw = {
+  content: string;
+  potential?: number;
 };
-
-type PostRaw = PartialObject<z.infer<typeof postSchema>["posts"][number]>;
 
 interface RenderPostsProps {
   isLoading: boolean;
-  posts?: (PostRaw | undefined)[];
+  posts?: PostRaw[];
   favouritePosts: string[];
   setFavouritePosts: React.Dispatch<React.SetStateAction<string[]>>;
 }
@@ -31,11 +26,10 @@ const RenderPosts: React.FC<RenderPostsProps> = ({
   favouritePosts,
   setFavouritePosts,
 }) => {
-  if (isLoading && !posts) {
+  if (isLoading) {
     return <PostsSkeleton />;
   }
-
-  if (posts) {
+  if (posts?.length) {
     return (
       <PostsGrid
         postsRaw={posts}
@@ -44,58 +38,38 @@ const RenderPosts: React.FC<RenderPostsProps> = ({
       />
     );
   }
-
   return null;
-};
-
-const parseAIResponse = (htmlString: string): PostRaw[] => {
-  // Create a DOM parser
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(htmlString, "text/html");
-
-  // Find all post elements
-  const postElements = doc.querySelectorAll("post");
-
-  return Array.from(postElements).map((post) => {
-    const content = post.querySelector("content")?.textContent?.trim();
-    const rating = post.querySelector("rating")?.textContent;
-
-    return {
-      content: content || "",
-      potential: rating ? parseInt(rating) : 0,
-    };
-  });
 };
 
 const ContentGenerator: React.FC = () => {
   const [userInput, setUserInput] = useState("");
-  const [posts, setPosts] = useState<PostRaw[]>();
-  const [favouritePosts, setFavouritePosts] = useState([""]);
+  const [posts, setPosts] = useState<PostRaw[]>([]);
+  const [favouritePosts, setFavouritePosts] = useState<string[]>([]);
   const [error, setError] = useState("");
-  const [rateLimit, setRateLimit] = useState<{
-    remaining: number | null;
-    limit: number | null;
-  }>({ remaining: null, limit: null });
+  const [rateLimit, setRateLimit] = useState<{ 
+    remaining: number | null; 
+    limit: number | null; 
+  }>({
+    remaining: null,
+    limit: null,
+  });
+  const [apiError, setApiError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const { user } = useUser();
-  const { openSignIn, closeSignIn } = useClerk();
+  const { openSignIn } = useClerk();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const {
-    completion,
-    complete,
-    isLoading,
-    error: completionError,
-  } = useCompletion({
+  const { completion, complete, isLoading, error: completionError } = useCompletion({
     api: "/api/generate-posts",
     streamProtocol: "text",
     onResponse: (response) => {
-      // Update rate limit info from headers
-      const remaining = Number(response.headers.get("X-RateLimit-Remaining"));
-      const limit = Number(response.headers.get("X-RateLimit-Limit"));
-      setRateLimit({ remaining, limit });
+      setRateLimit({
+        remaining: Number(response.headers.get("X-RateLimit-Remaining")),
+        limit: Number(response.headers.get("X-RateLimit-Limit")),
+      });
     },
     onError: (error) => {
-      // Check if it's a rate limit error
       if (error.message.includes("rate limit")) {
         setRateLimit((prev) => ({ ...prev, remaining: 0 }));
       }
@@ -103,45 +77,43 @@ const ContentGenerator: React.FC = () => {
     },
   });
 
-  // Watch for changes in the completion string and parse it
   useEffect(() => {
     if (completion) {
       try {
-        const parsedPosts = parseAIResponse(completion);
+        const parsedPosts = JSON.parse(completion) as PostRaw[];
         setPosts(parsedPosts);
       } catch (err) {
-        setError("Failed to parse the generated content");
-        console.error("Parsing error:", err);
+        setError("Failed to parse the generated content. Please try again.");
+        console.error("Parsing error:", err, "Completion:", completion);
       }
     }
   }, [completion]);
 
   const onSubmitPosts = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (!user) {
-      openSignIn();
-      return;
-    }
-
-    setError("");
-    setPosts(undefined); // Clear existing posts before generating new ones
+    setApiError("");
+    setIsSubmitting(true);
 
     try {
-      await complete(userInput, {
-        body: { userInput, selectedPosts: favouritePosts },
-      });
-    } catch (error) {
-      setError("There was an error generating content. Please try again.");
-    }
-  };
-
-  const handleTextareaFocus = () => {
-    if (!user) {
-      if (textareaRef.current) {
-        textareaRef.current.blur(); // Remove focus from the textarea
+      if (!user) {
+        openSignIn();
+        return;
       }
-      openSignIn();
+
+      if (!userInput.trim()) {
+        throw new Error("Please enter some content to generate posts");
+      }
+
+      // Pass a JSON-stringified payload (since useCompletion expects a string)
+      complete(JSON.stringify({ userInput, selectedPosts: favouritePosts }));
+
+      setUserInput("");
+      textareaRef.current?.focus();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "An unknown error occurred");
+      console.error("Error generating posts:", err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -158,35 +130,29 @@ const ContentGenerator: React.FC = () => {
       <div className="mx-auto p-6 bg-background rounded-lg shadow-md text-foreground max-w-[560px]">
         {rateLimit.remaining !== null && (
           <div className="text-secondary-foreground text-sm mb-4 text-center">
-            {rateLimit.remaining} / {rateLimit.limit} generations remaining
-            today
+            {rateLimit.remaining} / {rateLimit.limit} generations remaining today
           </div>
         )}
-
         <form onSubmit={onSubmitPosts}>
-          {!isLoading && !posts && (
+          {!isLoading && posts.length === 0 && (
             <div className="mb-5 text-start">
               <Textarea
                 ref={textareaRef}
                 className="mt-2 resize-none"
-                id="user-input"
                 placeholder="Enter your topic..."
-                rows={15}
+                rows={5}
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                onFocus={handleTextareaFocus}
-                disabled={isLoading}
                 required
               />
             </div>
           )}
-
-          <Button
-            className="w-full bg-primary"
-            type="submit"
-            disabled={isLoading || rateLimit.remaining === 0}
+          <Button 
+            className="w-full bg-primary" 
+            type="submit" 
+            disabled={isLoading || rateLimit.remaining === 0 || isSubmitting}
           >
-            {isLoading ? (
+            {isLoading || isSubmitting ? (
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-foreground"></div>
             ) : (
               <>
@@ -196,10 +162,9 @@ const ContentGenerator: React.FC = () => {
             )}
           </Button>
         </form>
-
-        {(completionError || error) && (
+        {(completionError || error || apiError) && (
           <p className="text-red-500 mb-4">
-            {completionError?.message || error}
+            {completionError?.message || error || apiError}
           </p>
         )}
       </div>

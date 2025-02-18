@@ -6,6 +6,7 @@ import { postSchema } from "../api/schema/schema";
 import Post, { PostType } from "./Post";
 import { createSavedPost, deleteSavedPost } from "../_lib/actions";
 
+// Create a type for partial post objects based on your schema.
 type PartialObject<T> = {
   [P in keyof T]?: T[P] | undefined;
 };
@@ -30,13 +31,14 @@ export default function PostsGrid({
   const [optimisticPosts, optimisticToggle] = useOptimistic<
     PostType[],
     { id: number; favorite: boolean }
-  >(posts, (curPosts, { id, favorite }) =>
-    curPosts.map((post) =>
+  >(posts, (currentPosts, { id, favorite }) =>
+    currentPosts.map((post) =>
       post.id === id ? { ...post, isFavorite: favorite } : post
     )
   );
 
   useEffect(() => {
+    // Map over the raw posts to create a consistent PostType array.
     setPosts(
       postsRaw.map((post, i) => ({
         id: i + 1,
@@ -48,17 +50,19 @@ export default function PostsGrid({
   }, [postsRaw]);
 
   async function handleFavorite(id: number, supabaseId?: number) {
-    const [postToSet] = posts.filter((post) => post.id === id);
-    const newFavoriteState = !postToSet.isFavorite;
+    const [postToToggle] = posts.filter((post) => post.id === id);
+    const newFavoriteState = !postToToggle.isFavorite;
 
     startTransition(async () => {
+      // Optimistically update the post favorite status.
       optimisticToggle({ id, favorite: newFavoriteState });
 
       try {
-        if (!postToSet.isFavorite) {
+        if (!postToToggle.isFavorite) {
+          // Create the saved post in your database.
           const [newSavedPost] = await createSavedPost({
-            post_body: postToSet.content,
-            post_rating: postToSet.potential,
+            post_body: postToToggle.content,
+            post_rating: postToToggle.potential,
           });
           setPosts(
             posts.map((post) =>
@@ -67,10 +71,11 @@ export default function PostsGrid({
                 : post
             )
           );
-          setFavouritePosts([...favouritePosts, postToSet.content ?? ""]);
+          setFavouritePosts([...favouritePosts, postToToggle.content ?? ""]);
         } else {
+          // Remove the post from favorites.
           setFavouritePosts(
-            favouritePosts.filter((post) => post !== postToSet.content)
+            favouritePosts.filter((post) => post !== postToToggle.content)
           );
           if (!supabaseId) throw new Error("No SupabaseId found");
           await deleteSavedPost(supabaseId);
@@ -81,7 +86,8 @@ export default function PostsGrid({
           );
         }
       } catch (error) {
-        optimisticToggle({ id, favorite: postToSet.isFavorite });
+        // Revert the optimistic update on error.
+        optimisticToggle({ id, favorite: postToToggle.isFavorite });
         console.error("Error updating favorite status: ", error);
       }
     });
