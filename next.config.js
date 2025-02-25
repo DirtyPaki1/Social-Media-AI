@@ -12,6 +12,14 @@ const nextConfig = {
   experimental: {
     appDir: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/dashboard',
+        destination: '/', // Maps /dashboard to your root page (app/page.tsx)
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

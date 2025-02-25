@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useOptimistic, useState, useTransition } from "react";
+import React, { useEffect, useOptimistic, useState, useTransition } from "react";
 import { z } from "zod";
 import { postSchema } from "../api/schema/schema";
 import Post, { PostType } from "./Post";
@@ -60,6 +60,8 @@ export default function PostsGrid({
       try {
         if (!postToToggle.isFavorite) {
           // Create the saved post in your database.
+          // Ensure that your createSavedPost action uses server-side getAuth()
+          // rather than client-side auth() or currentUser().
           const [newSavedPost] = await createSavedPost({
             post_body: postToToggle.content,
             post_rating: postToToggle.potential,

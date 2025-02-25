@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,7 @@ const RenderPosts: React.FC<RenderPostsProps> = ({
   favouritePosts,
   setFavouritePosts,
 }) => {
-  if (isLoading) {
-    return <PostsSkeleton />;
-  }
+  if (isLoading) return <PostsSkeleton />;
   if (posts?.length) {
     return (
       <PostsGrid
@@ -46,16 +45,13 @@ const ContentGenerator: React.FC = () => {
   const [posts, setPosts] = useState<PostRaw[]>([]);
   const [favouritePosts, setFavouritePosts] = useState<string[]>([]);
   const [error, setError] = useState("");
-  const [rateLimit, setRateLimit] = useState<{ 
-    remaining: number | null; 
-    limit: number | null; 
-  }>({
+  const [rateLimit, setRateLimit] = useState<{ remaining: number | null; limit: number | null }>({
     remaining: null,
     limit: null,
   });
   const [apiError, setApiError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const { user } = useUser();
   const { openSignIn } = useClerk();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -80,8 +76,18 @@ const ContentGenerator: React.FC = () => {
   useEffect(() => {
     if (completion) {
       try {
-        const parsedPosts = JSON.parse(completion) as PostRaw[];
-        setPosts(parsedPosts);
+        // Optional: Clean the completion string
+        let cleaned = completion;
+        // Remove code fences if present.
+        cleaned = cleaned.replace(/```/g, "").trim();
+        // Remove any extra newline characters at the beginning/end.
+        cleaned = cleaned.replace(/^\s+|\s+$/g, "");
+        // Attempt to parse the cleaned JSON.
+        const parsed = JSON.parse(cleaned);
+        if (!parsed.posts || !Array.isArray(parsed.posts)) {
+          throw new Error("Parsed JSON does not contain a valid 'posts' array");
+        }
+        setPosts(parsed.posts);
       } catch (err) {
         setError("Failed to parse the generated content. Please try again.");
         console.error("Parsing error:", err, "Completion:", completion);
@@ -99,17 +105,16 @@ const ContentGenerator: React.FC = () => {
         openSignIn();
         return;
       }
-
       if (!userInput.trim()) {
         throw new Error("Please enter some content to generate posts");
       }
-
-      // Pass a JSON-stringified payload (since useCompletion expects a string)
+      // Log payload for debugging.
+      console.log("Submitting payload:", { userInput, selectedPosts: favouritePosts });
+      // Send a JSON-stringified payload.
       complete(JSON.stringify({ userInput, selectedPosts: favouritePosts }));
-
       setUserInput("");
       textareaRef.current?.focus();
-    } catch (err) {
+    } catch (err: any) {
       setApiError(err instanceof Error ? err.message : "An unknown error occurred");
       console.error("Error generating posts:", err);
     } finally {
@@ -147,9 +152,9 @@ const ContentGenerator: React.FC = () => {
               />
             </div>
           )}
-          <Button 
-            className="w-full bg-primary" 
-            type="submit" 
+          <Button
+            className="w-full bg-primary"
+            type="submit"
             disabled={isLoading || rateLimit.remaining === 0 || isSubmitting}
           >
             {isLoading || isSubmitting ? (
