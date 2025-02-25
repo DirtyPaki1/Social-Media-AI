@@ -9,7 +9,8 @@ import { Wand2 } from "lucide-react";
 import PostsGrid from "./PostsGrid";
 import PostsSkeleton from "./PostsSkeleton";
 import { experimental_useObject as useObject } from "ai/react";
-import { postSchema } from "../api/schema/schema";
+// IMPORTANT: Make sure the file path below matches the location of your schema file.
+import { postSchema } from "@/api/schema/schema";
 import { z } from "zod";
 
 type PartialObject<T> = {
@@ -51,7 +52,7 @@ const RenderPosts: React.FC<RenderPostsProps> = ({
 const HormoziContentGenerator: React.FC = () => {
   const [videoUrl, setVideoUrl] = useState("");
   const [videoId, setVideoId] = useState("");
-  const [favouritePosts, setFavouritePosts] = useState([""]);
+  const [favouritePosts, setFavouritePosts] = useState<string[]>([]);
   const [displayError, setDisplayError] = useState("");
   const { user } = useUser();
   const { openSignUp } = useClerk();
@@ -77,7 +78,7 @@ const HormoziContentGenerator: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    // Extract video ID from YouTube URL
+    // Extract video ID from YouTube URL.
     const extractVideoId = (url: string) => {
       const regExp =
         /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -105,9 +106,7 @@ const HormoziContentGenerator: React.FC = () => {
         body: { videoUrl, selectedPosts: favouritePosts },
       });
     } catch (error) {
-      setDisplayError(
-        "There was an error generating content. Please try again."
-      );
+      setDisplayError("There was an error generating content. Please try again.");
     }
   };
 
