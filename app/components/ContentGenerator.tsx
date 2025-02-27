@@ -45,10 +45,12 @@ const ContentGenerator: React.FC = () => {
   const [posts, setPosts] = useState<PostRaw[]>([]);
   const [favouritePosts, setFavouritePosts] = useState<string[]>([]);
   const [error, setError] = useState("");
-  const [rateLimit, setRateLimit] = useState<{ remaining: number | null; limit: number | null }>({
-    remaining: null,
-    limit: null,
-  });
+  const [rateLimit, setRateLimit] = useState<{ remaining: number | null; limit: number | null }>(
+    {
+      remaining: null,
+      limit: null,
+    }
+  );
   const [apiError, setApiError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -76,13 +78,8 @@ const ContentGenerator: React.FC = () => {
   useEffect(() => {
     if (completion) {
       try {
-        // Optional: Clean the completion string
-        let cleaned = completion;
-        // Remove code fences if present.
+        let cleaned = completion.trim();
         cleaned = cleaned.replace(/```/g, "").trim();
-        // Remove any extra newline characters at the beginning/end.
-        cleaned = cleaned.replace(/^\s+|\s+$/g, "");
-        // Attempt to parse the cleaned JSON.
         const parsed = JSON.parse(cleaned);
         if (!parsed.posts || !Array.isArray(parsed.posts)) {
           throw new Error("Parsed JSON does not contain a valid 'posts' array");
@@ -99,7 +96,7 @@ const ContentGenerator: React.FC = () => {
     event.preventDefault();
     setApiError("");
     setIsSubmitting(true);
-
+  
     try {
       if (!user) {
         openSignIn();
@@ -108,11 +105,12 @@ const ContentGenerator: React.FC = () => {
       if (!userInput.trim()) {
         throw new Error("Please enter some content to generate posts");
       }
-      // Log payload for debugging.
-      console.log("Submitting payload:", { userInput, selectedPosts: favouritePosts });
-      // Send a JSON-stringified payload.
+  
+      console.log("Submitting user input:", userInput);
+      console.log("Selected posts:", favouritePosts);
+  
       complete(JSON.stringify({ userInput, selectedPosts: favouritePosts }));
-      setUserInput("");
+      setUserInput(""); // Clear input after submission
       textareaRef.current?.focus();
     } catch (err: any) {
       setApiError(err instanceof Error ? err.message : "An unknown error occurred");
@@ -121,6 +119,7 @@ const ContentGenerator: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+  
 
   return (
     <>
@@ -139,19 +138,17 @@ const ContentGenerator: React.FC = () => {
           </div>
         )}
         <form onSubmit={onSubmitPosts}>
-          {!isLoading && posts.length === 0 && (
-            <div className="mb-5 text-start">
-              <Textarea
-                ref={textareaRef}
-                className="mt-2 resize-none"
-                placeholder="Enter your topic..."
-                rows={5}
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                required
-              />
-            </div>
-          )}
+          <div className="mb-5 text-start">
+            <Textarea
+              ref={textareaRef}
+              className="mt-2 resize-none"
+              placeholder="Enter your topic..."
+              rows={5}
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              required
+            />
+          </div>
           <Button
             className="w-full bg-primary"
             type="submit"

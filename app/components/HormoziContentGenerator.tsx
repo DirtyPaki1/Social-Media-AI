@@ -9,34 +9,28 @@ import { Wand2 } from "lucide-react";
 import PostsGrid from "./PostsGrid";
 import PostsSkeleton from "./PostsSkeleton";
 import { experimental_useObject as useObject } from "ai/react";
-// IMPORTANT: Make sure the file path below matches the location of your schema file.
-import { postSchema } from "@/api/schema/schema";
-import { z } from "zod";
 
-type PartialObject<T> = {
-  [P in keyof T]?: T[P] | undefined;
-};
-
-type PostRaw = PartialObject<z.infer<typeof postSchema>["posts"][number]>;
+// 🔹 Ensure schema.ts exists before uncommenting
+// import { postSchema } from "@/api/schema/schema";
 
 interface RenderPostsProps {
   isLoading: boolean;
-  posts?: (PostRaw | undefined)[];
+  posts?: any[];
   favouritePosts: string[];
   setFavouritePosts: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const RenderPosts: React.FC<RenderPostsProps> = ({
   isLoading,
-  posts,
+  posts = [], // Default empty array
   favouritePosts,
   setFavouritePosts,
 }) => {
-  if (isLoading && !posts) {
+  if (isLoading && !posts.length) {
     return <PostsSkeleton />;
   }
 
-  if (posts) {
+  if (posts.length) {
     return (
       <PostsGrid
         postsRaw={posts}
@@ -64,7 +58,8 @@ const HormoziContentGenerator: React.FC = () => {
     error,
   } = useObject({
     api: "/api/generate-posts-youtube",
-    schema: postSchema,
+    // 🔹 Uncomment if schema.ts exists
+    // schema: postSchema,
   });
 
   useEffect(() => {
@@ -78,12 +73,17 @@ const HormoziContentGenerator: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    // Extract video ID from YouTube URL.
     const extractVideoId = (url: string) => {
-      const regExp =
-        /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-      const match = url.match(regExp);
-      return match && match[2].length === 11 ? match[2] : null;
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.hostname.includes("youtube.com")) {
+          return urlObj.searchParams.get("v");
+        } else if (urlObj.hostname.includes("youtu.be")) {
+          return urlObj.pathname.substring(1);
+        }
+      } catch (err) {
+        return null;
+      }
     };
 
     const id = extractVideoId(videoUrl);
@@ -99,14 +99,20 @@ const HormoziContentGenerator: React.FC = () => {
       return;
     }
 
+    if (!videoUrl.trim()) {
+      setDisplayError("Please enter a YouTube video URL.");
+      return;
+    }
+
     setDisplayError("");
 
     try {
       await submit({
         body: { videoUrl, selectedPosts: favouritePosts },
       });
-    } catch (error) {
+    } catch (err) {
       setDisplayError("There was an error generating content. Please try again.");
+      console.error("Error generating posts:", err);
     }
   };
 
@@ -115,14 +121,14 @@ const HormoziContentGenerator: React.FC = () => {
       <div className="mx-auto max-w-6xl">
         <RenderPosts
           isLoading={isLoading}
-          posts={linkedInObject?.posts}
+          posts={linkedInObject?.posts || []}
           favouritePosts={favouritePosts}
           setFavouritePosts={setFavouritePosts}
         />
       </div>
       <div className="mx-auto p-6 bg-background rounded-lg shadow-md text-foreground max-w-[560px]">
         <form onSubmit={onSubmitPosts}>
-          {!isLoading && !linkedInObject?.posts && (
+          {!isLoading && !linkedInObject?.posts?.length && (
             <>
               <div className="mb-5 text-start">
                 <Input
