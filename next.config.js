@@ -4,19 +4,16 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**", // Allow all hostnames; adjust if you want to limit specific domains.
+        hostname: "**", // Allow all hostnames (not recommended for security). Define specific domains if possible.
       },
     ],
   },
   reactStrictMode: true,
-  experimental: {
-    appDir: true,
-  },
   async rewrites() {
     return [
       {
-        source: '/dashboard',
-        destination: '/', // Maps /dashboard to your root page (app/page.tsx)
+        source: "/dashboard",
+        destination: "/", // ⚠️ Double-check if you actually need this
       },
     ];
   },

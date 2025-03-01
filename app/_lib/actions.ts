@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { Database } from './database.types';
 import { createAuthenticatedClient } from './supabase';
-import { revalidatePath } from '@/node_modules/next/cache';
+import { revalidatePath } from 'next/cache';
 
 async function getAuthenticatedClientWithSession() {
   const { sessionId } = auth();
@@ -10,7 +10,7 @@ async function getAuthenticatedClientWithSession() {
 }
 
 export async function createSavedPost(
-  newSavedPost: Database["public"]["tables"]["savedPost"]["Insert"]
+  newSavedPost: Database["public"]["Tables"]["savedPosts"]["Insert"] // ✅ Fixed type reference
 ) {
   const supabase = await getAuthenticatedClientWithSession();
   const { data, error } = await supabase
@@ -28,9 +28,7 @@ export async function createSavedPost(
 
 export async function getSavedPost() {
   const authenticatedClient = await createAuthenticatedClient();
-  const { data, error } = await authenticatedClient
-    .from('savedPosts')
-    .select();
+  const { data, error } = await authenticatedClient.from('savedPosts').select();
 
   if (error) {
     console.error('Error loading posts:', error);
