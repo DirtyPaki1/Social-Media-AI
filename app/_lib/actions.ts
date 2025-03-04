@@ -13,11 +13,11 @@ async function getAuthenticatedClientWithSession() {
  * Create a saved post.
  */
 export async function createSavedPost(
-  newSavedPost: Database["Tables"]["savedPosts"]["Insert"] // ✅ Fixed type reference
+  newSavedPost: Database["public"]["Tables"]["savedPosts"]["Insert"] // ✅ Fixed type reference
 ) {
   const supabase = await getAuthenticatedClientWithSession();
 
-  const formattedPost: Database["Tables"]["savedPosts"]["Insert"] = {
+  const formattedPost: Database["public"]["Tables"]["savedPosts"]["Insert"] = {
     post_body: newSavedPost.post_body ?? null,
     post_rating: newSavedPost.post_rating ?? null,
     user_id: newSavedPost.user_id ?? null,
@@ -25,7 +25,7 @@ export async function createSavedPost(
 
   const { data, error } = await supabase
     .from("savedPosts")
-    .insert([formattedPost]) // ✅ Ensure correct data type
+    .insert([formattedPost])
     .select();
 
   if (error) {
@@ -57,7 +57,6 @@ export async function getSavedPost() {
 export async function deleteSavedPost(postId: number, revalidate?: boolean) {
   const supabase = await getAuthenticatedClientWithSession();
 
-  // ✅ Try to delete the post directly and check affected rows
   const { error: deleteError, count } = await supabase
     .from("savedPosts")
     .delete({ count: "exact" })
@@ -68,7 +67,6 @@ export async function deleteSavedPost(postId: number, revalidate?: boolean) {
     throw new Error("Saved Post could not be deleted.");
   }
 
-  // ✅ Ensure post was actually deleted
   if (count === 0) {
     throw new Error("You are not allowed to delete this item or it does not exist");
   }
