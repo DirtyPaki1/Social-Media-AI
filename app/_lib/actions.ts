@@ -13,20 +13,18 @@ async function getAuthenticatedClientWithSession() {
  * Create a saved post.
  */
 export async function createSavedPost(
-  newSavedPost: Database["public"]["Tables"]["savedPosts"]["Insert"] // ✅ Fixed type reference
+  newSavedPost: Omit<Database["public"]["Tables"]["savedPosts"]["Insert"], "id" | "created_at">
 ) {
   const supabase = await getAuthenticatedClientWithSession();
 
+  // Ensure required fields are present (adjust based on your schema)
   const formattedPost: Database["public"]["Tables"]["savedPosts"]["Insert"] = {
     post_body: newSavedPost.post_body ?? null,
     post_rating: newSavedPost.post_rating ?? null,
     user_id: newSavedPost.user_id ?? null,
   };
 
-  const { data, error } = await supabase
-    .from("savedPosts")
-    .insert([formattedPost])
-    .select();
+  const { data, error } = await supabase.from("savedPosts").insert(formattedPost).select();
 
   if (error) {
     console.error("Error saving post:", error);
