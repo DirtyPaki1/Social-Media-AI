@@ -17,7 +17,7 @@ export async function createSavedPost(
 ) {
   const supabase = await getAuthenticatedClientWithSession();
 
-  // Ensure required fields are present (adjust based on your schema)
+  // Ensure required fields are present (modify based on your schema)
   const formattedPost: Database["public"]["Tables"]["savedPosts"]["Insert"] = {
     post_body: newSavedPost.post_body ?? null,
     post_rating: newSavedPost.post_rating ?? null,
