@@ -24,11 +24,12 @@ export async function createSavedPost(
     user_id: newSavedPost.user_id ?? null,
   };
 
-  const { data, error } = await supabase.from("savedPosts").insert(formattedPost).select();
+  // ✅ Fix: Wrap formattedPost inside an array for Supabase `.insert()`
+  const { data, error } = await supabase.from("savedPosts").insert([formattedPost]).select();
 
   if (error) {
-    console.error("Error saving post:", error);
-    throw new Error("Item cannot be saved");
+    console.error("Error saving post:", error.message);
+    throw new Error(`Item cannot be saved: ${error.message}`);
   }
 
   return data;
@@ -42,8 +43,8 @@ export async function getSavedPost() {
   const { data, error } = await authenticatedClient.from("savedPosts").select();
 
   if (error) {
-    console.error("Error loading posts:", error);
-    throw new Error("Saved Posts could not be loaded.");
+    console.error("Error loading posts:", error.message);
+    throw new Error(`Saved Posts could not be loaded: ${error.message}`);
   }
 
   return data;
@@ -61,8 +62,8 @@ export async function deleteSavedPost(postId: number, revalidate?: boolean) {
     .eq("id", postId);
 
   if (deleteError) {
-    console.error("Error deleting post:", deleteError);
-    throw new Error("Saved Post could not be deleted.");
+    console.error("Error deleting post:", deleteError.message);
+    throw new Error(`Saved Post could not be deleted: ${deleteError.message}`);
   }
 
   if (count === 0) {
