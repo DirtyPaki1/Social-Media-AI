@@ -23,9 +23,10 @@ export async function createSavedPost(
       post_body: newSavedPost.post_body ?? null,
       post_rating: newSavedPost.post_rating ?? null,
       user_id: newSavedPost.user_id ?? null,
+      created_at: new Date().toISOString(), // Ensure created_at is set
     };
 
-    // ✅ Ensure formattedPost is wrapped inside an array for Supabase `.insert()`
+    // ✅ Wrap formattedPost inside an array
     const { data, error } = await supabase.from("savedPosts").insert([formattedPost]).select("*");
 
     if (error) {
@@ -36,59 +37,6 @@ export async function createSavedPost(
     return data;
   } catch (err) {
     console.error("createSavedPost error:", err);
-    throw err;
-  }
-}
-
-/**
- * Get all saved posts.
- */
-export async function getSavedPost() {
-  try {
-    const authenticatedClient = await createAuthenticatedClient();
-    const { data, error } = await authenticatedClient.from("savedPosts").select("*");
-
-    if (error) {
-      console.error("Error loading posts:", error.message);
-      throw new Error(`Saved Posts could not be loaded: ${error.message}`);
-    }
-
-    return data;
-  } catch (err) {
-    console.error("getSavedPost error:", err);
-    throw err;
-  }
-}
-
-/**
- * Delete a saved post.
- */
-export async function deleteSavedPost(postId: number, revalidate?: boolean) {
-  try {
-    const supabase = await getAuthenticatedClientWithSession();
-
-    const { error: deleteError, count } = await supabase
-      .from("savedPosts")
-      .delete()
-      .eq("id", postId)
-      .select("*");
-
-    if (deleteError) {
-      console.error("Error deleting post:", deleteError.message);
-      throw new Error(`Saved Post could not be deleted: ${deleteError.message}`);
-    }
-
-    if (!count || count === 0) {
-      throw new Error("You are not allowed to delete this item or it does not exist");
-    }
-
-    if (revalidate) {
-      await revalidatePath("/saved-posts");
-    }
-
-    return { success: true };
-  } catch (err) {
-    console.error("deleteSavedPost error:", err);
     throw err;
   }
 }
