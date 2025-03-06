@@ -18,15 +18,15 @@ export async function createSavedPost(
   try {
     const supabase = await getAuthenticatedClientWithSession();
 
-    // Ensure required fields are present
-    const formattedPost: Omit<Database["public"]["Tables"]["savedPosts"]["Insert"], "id"> = {
+    // Ensure required fields are present and formatted
+    const formattedPost: Database["public"]["Tables"]["savedPosts"]["Insert"] = {
       post_body: newSavedPost.post_body ?? null,
       post_rating: newSavedPost.post_rating ?? null,
       user_id: newSavedPost.user_id ?? null,
-      // `created_at` should be handled by the database if not supplied, hence omitted.
+      created_at: new Date().toISOString(), // This should be auto-generated, but can be added manually if needed
     };
 
-    // Wrap formattedPost inside an array for insert
+    // Wrap formattedPost inside an array to pass into the insert method
     const { data, error } = await supabase.from("savedPosts").insert([formattedPost]).select("*");
 
     if (error) {
