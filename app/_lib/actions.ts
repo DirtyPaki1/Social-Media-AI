@@ -18,14 +18,14 @@ export async function createSavedPost(
   try {
     const supabase = await getAuthenticatedClientWithSession();
 
-    // ✅ Ensure correct type structure
-    const formattedPost: Partial<Database["public"]["Tables"]["savedPosts"]["Insert"]> = {
+    // Ensure required fields are present
+    const formattedPost: Database["public"]["Tables"]["savedPosts"]["Insert"] = {
       post_body: newSavedPost.post_body ?? null,
       post_rating: newSavedPost.post_rating ?? null,
       user_id: newSavedPost.user_id ?? null,
     };
 
-    // ✅ Wrap in an array (Supabase requires an array)
+    // ✅ Ensure formattedPost is wrapped inside an array for Supabase `.insert()`
     const { data, error } = await supabase.from("savedPosts").insert([formattedPost]).select();
 
     if (error) {
@@ -67,12 +67,11 @@ export async function deleteSavedPost(postId: number, revalidate?: boolean) {
   try {
     const supabase = await getAuthenticatedClientWithSession();
 
-    // ✅ Ensure select() is valid after delete()
     const { error: deleteError, count } = await supabase
       .from("savedPosts")
       .delete()
       .eq("id", postId)
-      .select("id"); // Ensure at least one column is selected
+      .select();
 
     if (deleteError) {
       console.error("Error deleting post:", deleteError.message);
