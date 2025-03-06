@@ -26,7 +26,7 @@ export async function createSavedPost(
       created_at: new Date().toISOString(), // Ensure created_at is set
     };
 
-    // ✅ Wrap formattedPost inside an array
+    // Wrap formattedPost inside an array
     const { data, error } = await supabase.from("savedPosts").insert([formattedPost]).select("*");
 
     if (error) {
