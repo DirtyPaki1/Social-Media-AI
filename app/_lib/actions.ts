@@ -26,7 +26,7 @@ export async function createSavedPost(
     };
 
     // ✅ Ensure formattedPost is wrapped inside an array for Supabase `.insert()`
-    const { data, error } = await supabase.from("savedPosts").insert([formattedPost]).select();
+    const { data, error } = await supabase.from("savedPosts").insert([formattedPost]).select("*");
 
     if (error) {
       console.error("Error saving post:", error.message);
@@ -46,7 +46,7 @@ export async function createSavedPost(
 export async function getSavedPost() {
   try {
     const authenticatedClient = await createAuthenticatedClient();
-    const { data, error } = await authenticatedClient.from("savedPosts").select();
+    const { data, error } = await authenticatedClient.from("savedPosts").select("*");
 
     if (error) {
       console.error("Error loading posts:", error.message);
@@ -71,7 +71,7 @@ export async function deleteSavedPost(postId: number, revalidate?: boolean) {
       .from("savedPosts")
       .delete()
       .eq("id", postId)
-      .select();
+      .select("*");
 
     if (deleteError) {
       console.error("Error deleting post:", deleteError.message);
