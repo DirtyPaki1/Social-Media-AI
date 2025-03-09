@@ -50,16 +50,25 @@ const ContentGenerator: React.FC = () => {
         }),
       });
 
-      const data = await response.json();
+      // Check for network errors before parsing the JSON response
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate posts");
+      }
 
-      if (!response.ok) throw new Error(data.error || "Failed to generate posts");
+      const data = await response.json();
 
       console.log("✅ Generated Posts:", data.posts);
       setPosts(data.posts);
       setUserInput("");
       textareaRef.current?.focus();
     } catch (err: any) {
-      setError(err.message || "Unknown error occurred.");
+      // Enhanced error handling
+      if (err instanceof TypeError && err.message === "Failed to fetch") {
+        setError("Network error: Failed to fetch data from the server.");
+      } else {
+        setError(err.message || "Unknown error occurred.");
+      }
       console.error("❌ Error:", err);
     } finally {
       setIsSubmitting(false);
