@@ -6,7 +6,6 @@ import { postSchema } from "../api/schema/schema";
 import Post, { PostType } from "./Post";
 import { createSavedPost, deleteSavedPost } from "../_lib/actions";
 
-// Create a type for partial post objects based on your schema.
 type PartialObject<T> = {
   [P in keyof T]?: T[P] | undefined;
 };
@@ -28,17 +27,13 @@ export default function PostsGrid({
 }: PostContainerProps) {
   const [posts, setPosts] = useState<PostType[]>([]);
   const [isPending, startTransition] = useTransition();
-  const [optimisticPosts, optimisticToggle] = useOptimistic<
-    PostType[],
-    { id: number; favorite: boolean }
-  >(posts, (currentPosts, { id, favorite }) =>
-    currentPosts.map((post) =>
-      post.id === id ? { ...post, isFavorite: favorite } : post
-    )
+  const [optimisticPosts, optimisticToggle] = useOptimistic<PostType[], { id: number; favorite: boolean }>(
+    posts,
+    (currentPosts, { id, favorite }) =>
+      currentPosts.map((post) => (post.id === id ? { ...post, isFavorite: favorite } : post))
   );
 
   useEffect(() => {
-    // Map over the raw posts to create a consistent PostType array.
     setPosts(
       postsRaw.map((post, i) => ({
         id: i + 1,
@@ -54,41 +49,27 @@ export default function PostsGrid({
     const newFavoriteState = !postToToggle.isFavorite;
 
     startTransition(async () => {
-      // Optimistically update the post favorite status.
       optimisticToggle({ id, favorite: newFavoriteState });
 
       try {
         if (!postToToggle.isFavorite) {
-          // Create the saved post in your database.
-          // Ensure that your createSavedPost action uses server-side getAuth()
-          // rather than client-side auth() or currentUser().
           const [newSavedPost] = await createSavedPost({
             post_body: postToToggle.content,
             post_rating: postToToggle.potential,
           });
           setPosts(
             posts.map((post) =>
-              post.id === id
-                ? { ...post, isFavorite: true, supabaseId: newSavedPost.id }
-                : post
+              post.id === id ? { ...post, isFavorite: true, supabaseId: newSavedPost.id } : post
             )
           );
           setFavouritePosts([...favouritePosts, postToToggle.content ?? ""]);
         } else {
-          // Remove the post from favorites.
-          setFavouritePosts(
-            favouritePosts.filter((post) => post !== postToToggle.content)
-          );
+          setFavouritePosts(favouritePosts.filter((post) => post !== postToToggle.content));
           if (!supabaseId) throw new Error("No SupabaseId found");
           await deleteSavedPost(supabaseId);
-          setPosts(
-            posts.map((post) =>
-              post.id === id ? { ...post, isFavorite: false } : post
-            )
-          );
+          setPosts(posts.map((post) => (post.id === id ? { ...post, isFavorite: false } : post)));
         }
       } catch (error) {
-        // Revert the optimistic update on error.
         optimisticToggle({ id, favorite: postToToggle.isFavorite });
         console.error("Error updating favorite status: ", error);
       }
@@ -103,17 +84,9 @@ export default function PostsGrid({
   }
 
   return (
-    <div
-      className={`w-full text-foreground p-6 rounded-lg shadow-lg overflow-hidden grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-3 ${className}`}
-    >
+    <div className={`w-full text-foreground p-6 rounded-lg shadow-lg grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-3 ${className}`}>
       {optimisticPosts.map((post) => (
-        <Post
-          key={post.id}
-          post={post}
-          onFavorite={handleFavorite}
-          onDelete={handleDelete}
-          disabled={isPending}
-        />
+        <Post key={post.id} post={post} onFavorite={handleFavorite} onDelete={handleDelete} disabled={isPending} />
       ))}
     </div>
   );

@@ -27,7 +27,6 @@ function SavedPostsFeed({ savedPosts }: SavedPostsType) {
 
   async function handleDelete(id: number) {
     optimisticDelete(id);
-
     await deleteSavedPost(id, true);
   }
 
