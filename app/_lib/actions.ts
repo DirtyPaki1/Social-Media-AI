@@ -21,16 +21,15 @@ export async function createSavedPost(
     const supabase = await getAuthenticatedClientWithSession();
 
     // Ensure only valid fields are included in the insert
-    const formattedPost: Database["public"]["Tables"]["savedPosts"]["Insert"] = {
+    const formattedPost: Omit<Database["public"]["Tables"]["savedPosts"]["Insert"], "id" | "created_at"> = {
       post_body: newSavedPost.post_body ?? null,
       post_rating: newSavedPost.post_rating ?? null,
-      user_id: newSavedPost.user_id ?? null, // Ensure this field is not null if required
+      user_id: newSavedPost.user_id ?? "",
     };
 
-    // Insert into the correct table (check table name in Supabase)
     const { data, error } = await supabase
-      .from("savedPosts") // Make sure "savedPosts" is the correct table name
-      .insert([formattedPost])
+      .from("savedPosts") // Ensure "savedPosts" is correct
+      .insert(formattedPost) // No array needed if inserting a single record
       .select("*");
 
     if (error) {

@@ -9,8 +9,8 @@ export type Json =
 // Main database type definition
 export type Database = {
   graphql_public: {
-    Tables: Record<string, never>;
-    Views: Record<string, never>;
+    Tables: Record<string, never>; // Adjust as needed for GraphQL public tables
+    Views: Record<string, never>; // Adjust as needed for views
     Functions: {
       graphql: {
         Args: {
@@ -22,8 +22,8 @@ export type Database = {
         Returns: Json;
       };
     };
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
+    Enums: Record<string, never>; // Define Enums if any
+    CompositeTypes: Record<string, never>; // Define composite types if any
   };
   public: {
     Tables: {
@@ -59,15 +59,15 @@ export type Database = {
         ];
       };
     };
-    Views: Record<string, never>;
+    Views: Record<string, never>; // Adjust as needed for views
     Functions: {
       requesting_user_id: {
         Args: Record<string, never>;
         Returns: string;
       };
     };
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
+    Enums: Record<string, never>; // Define Enums if any
+    CompositeTypes: Record<string, never>; // Define composite types if any
   };
 };
 
